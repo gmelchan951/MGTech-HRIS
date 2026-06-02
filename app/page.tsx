@@ -1226,12 +1226,6 @@ export default function Home() {
   };
 
   const handleLogoClick = () => {
-    if (isDevUnlocked) {
-      setShowDevConsole(true);
-      triggerToast("👑 Accessing Developer Control Console...", "success");
-      return;
-    }
-    
     setLogoClicks((prev) => {
       const next = prev + 1;
       if (next >= 5) {
@@ -8398,18 +8392,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Fully Hidden Developer Floating Trigger (Only reveals after clicking company logo 5 times and entering correct PIN) */}
-      {isDevUnlocked && (
-        <div 
-          onClick={() => setShowDevConsole(true)}
-          className="fixed bottom-4 right-4 z-50 px-4 py-2.5 text-[10px] font-mono tracking-widest font-black rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 border border-amber-400 text-slate-950 font-bold hover:from-amber-400 hover:to-amber-500 shadow-2xl transition-all cursor-pointer select-none flex items-center gap-2 uppercase animate-bounce animate-fadeIn"
-          title="Open Developer Control Core Setup Panel (Config, Admin Passwords, and Themes)"
-          id="dev-console-trigger-button"
-        >
-          <span>⚜️</span>
-          <span>DEV CORE CONSOLE</span>
-        </div>
-      )}
+
 
       {/* Developer Console Modal Overlay */}
       {showDevConsole && (
