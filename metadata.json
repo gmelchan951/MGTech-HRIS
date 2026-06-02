@@ -1,0 +1,6 @@
+{
+  "name": "MGTech HRIS",
+  "description": "HRIS web application featuring employee onboarding, attendance tracking, performance reviews, and 9 utility Edge Functions for payroll, payslips, email notifications, and automated crons.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

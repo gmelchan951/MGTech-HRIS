@@ -1,0 +1,7 @@
+node_modules/
+# .next/ directory is not ignored to ensure deployment artifact upload succeeds
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
