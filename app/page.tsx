@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { 
   Users, Calendar, Clock, DollarSign, Award, Clipboard, 
   Settings as SettingsIcon, Bell, LogOut, ChevronRight, ChevronLeft,
@@ -26,97 +27,12 @@ const COLORS = {
 };
 
 // =====================================================================
-// STATIC MOCK DATA (REPRESENTING LOCAL CACHING STATE)
-// =====================================================================
-const DEPARTMENTS = [
-  { id: 1, name: "Human Resources", code: "HR", headcount: 5 },
-  { id: 2, name: "Information Technology", code: "IT", headcount: 12 },
-  { id: 3, name: "Finance & Accounting", code: "FIN", headcount: 8 },
-  { id: 4, name: "Operations", code: "OPS", headcount: 20 },
-  { id: 5, name: "Sales & Marketing", code: "SAL", headcount: 15 },
-];
-
-const INITIAL_EMPLOYEES = [
-  { id: "EMP-2024-0001", name: "Maria Santos", position: "HR Manager", department: "Human Resources", deptId: 1, status: "Active", type: "Regular", gender: "Female", dateHired: "2020-03-15", salary: 55000, email: "m.santos@corp.ph", avatar: "MS", sss: "33-1234567-8", tin: "123-456-789-000", pagibig: "1234-5678-9012", philhealth: "12-123456789-1", phone: "+63 917 123 4567", address: "Quezon City, Metro Manila", workingDaysFrom: "Monday", workingDaysTo: "Friday", clockInSchedule: "08:00 AM", clockOutSchedule: "05:00 PM", gracePeriod: 15 },
-  { id: "EMP-2024-0002", name: "Juan dela Cruz", position: "Senior Developer", department: "Information Technology", deptId: 2, status: "Active", type: "Regular", gender: "Male", dateHired: "2021-06-01", salary: 65000, email: "j.delacruz@corp.ph", avatar: "JC", sss: "33-9876543-2", tin: "987-654-321-000", pagibig: "9876-5432-1098", philhealth: "12-987654321-0", phone: "+63 918 234 5678", address: "Makati City, Metro Manila", workingDaysFrom: "Monday", workingDaysTo: "Friday", clockInSchedule: "08:00 AM", clockOutSchedule: "05:00 PM", gracePeriod: 15 },
-  { id: "EMP-2024-0003", name: "Ana Reyes", position: "Accountant", department: "Finance & Accounting", deptId: 3, status: "Active", type: "Regular", gender: "Female", dateHired: "2022-01-10", salary: 40000, email: "a.reyes@corp.ph", avatar: "AR", sss: "33-5555555-5", tin: "555-555-555-000", pagibig: "5555-5555-5555", philhealth: "12-555555555-5", phone: "+63 919 345 6789", address: "Pasig City, Metro Manila", workingDaysFrom: "Monday", workingDaysTo: "Friday", clockInSchedule: "08:00 AM", clockOutSchedule: "05:00 PM", gracePeriod: 15 },
-  { id: "EMP-2024-0004", name: "Pedro Lim", position: "Operations Lead", department: "Operations", deptId: 4, status: "Active", type: "Regular", gender: "Male", dateHired: "2019-08-20", salary: 48000, email: "p.lim@corp.ph", avatar: "PL", sss: "33-4444444-4", tin: "444-444-444-000", pagibig: "4444-4444-4444", philhealth: "12-444444444-4", phone: "+63 920 456 7890", address: "Taguig City, Metro Manila", workingDaysFrom: "Monday", workingDaysTo: "Friday", clockInSchedule: "08:00 AM", clockOutSchedule: "05:00 PM", gracePeriod: 15 },
-  { id: "EMP-2024-0005", name: "Rosa Fernandez", position: "Sales Executive", department: "Sales & Marketing", deptId: 5, status: "Active", type: "Probationary", gender: "Female", dateHired: "2024-11-01", salary: 32000, email: "r.fernandez@corp.ph", avatar: "RF", sss: "33-3333333-3", tin: "333-333-333-000", pagibig: "3333-3333-3333", philhealth: "12-333333333-3", phone: "+63 921 567 8901", address: "Cebu City, Cebu", workingDaysFrom: "Monday", workingDaysTo: "Friday", clockInSchedule: "08:00 AM", clockOutSchedule: "05:00 PM", gracePeriod: 15 },
-  { id: "EMP-2024-0006", name: "Carlos Mendoza", position: "IT Support", department: "Information Technology", deptId: 2, status: "Active", type: "Regular", gender: "Male", dateHired: "2023-03-15", salary: 28000, email: "c.mendoza@corp.ph", avatar: "CM", sss: "33-2222222-2", tin: "222-222-222-000", pagibig: "2222-2222-2222", philhealth: "12-222222222-2", phone: "+63 922 678 9012", address: "Davao City, Davao del Sur", workingDaysFrom: "Monday", workingDaysTo: "Friday", clockInSchedule: "08:00 AM", clockOutSchedule: "05:00 PM", gracePeriod: 15 },
-];
-
-const INITIAL_LEAVES = [
-  { id: "LR-2024-001", requesterId: "EMP-2024-0005", employeeName: "Rosa Fernandez", type: "Vacation Leave", startDate: "2024-12-23", endDate: "2024-12-27", days: 5, status: "Pending", reason: "Family holiday during Christmas break", filed: "2024-12-10" },
-  { id: "LR-2024-002", requesterId: "EMP-2024-0006", employeeName: "Carlos Mendoza", type: "Sick Leave", startDate: "2024-12-18", endDate: "2024-12-18", days: 1, status: "Approved", reason: "Sudden onset of flu and high fever", filed: "2024-12-17" },
-  { id: "LR-2024-003", requesterId: "EMP-2024-0002", employeeName: "Juan dela Cruz", type: "Vacation Leave", startDate: "2024-12-30", endDate: "2025-01-03", days: 5, status: "Approved", reason: "Standard New Year mandatory holidays", filed: "2024-12-05" },
-  { id: "LR-2026-001", requesterId: "EMP-2024-0002", employeeName: "Juan dela Cruz", type: "Vacation Leave", startDate: "2026-05-25", endDate: "2026-05-29", days: 5, status: "Approved", reason: "Family beach trip in Boracay", filed: "2026-05-10" },
-  { id: "LR-2026-002", requesterId: "EMP-2024-0003", employeeName: "Ana Reyes", type: "Sick Leave", startDate: "2026-05-28", endDate: "2026-05-30", days: 3, status: "Approved", reason: "Fever and medical diagnostics", filed: "2026-05-28" },
-  { id: "LR-2026-003", requesterId: "EMP-2024-0006", employeeName: "Carlos Mendoza", type: "Vacation Leave", startDate: "2026-06-02", endDate: "2026-06-04", days: 3, status: "Approved", reason: "Rest and relaxation in home province", filed: "2026-05-18" },
-  { id: "LR-2026-004", requesterId: "EMP-2024-0005", employeeName: "Rosa Fernandez", type: "Maternity Leave", startDate: "2026-05-15", endDate: "2026-06-15", days: 31, status: "Approved", reason: "Statutory maternity resting leaves", filed: "2026-04-10" }
-];
-
-const INITIAL_ATTENDANCE = [
-  { 
-    date: "2026-05-28", 
-    name: "Juan dela Cruz", 
-    timeIn: "08:02 AM", 
-    timeOut: "05:10 PM", 
-    hoursWorked: 9.13, 
-    lateMin: 2, 
-    status: "Present",
-    timeInLoc: { lat: 14.5496, lng: 121.0437, address: "BGC High Street, Taguig City, Metro Manila", accuracy: 12 },
-    timeOutLoc: { lat: 14.5547, lng: 121.0244, address: "Ayala Avenue Office, Makati, Metro Manila", accuracy: 20 }
-  },
-  { 
-    date: "2026-05-28", 
-    name: "Ana Reyes", 
-    timeIn: "08:00 AM", 
-    timeOut: "05:00 PM", 
-    hoursWorked: 8.00, 
-    lateMin: 0, 
-    status: "Present",
-    timeInLoc: { lat: 14.5995, lng: 120.9842, address: "Manila City Hall Area, Ermita, Metro Manila", accuracy: 8 },
-    timeOutLoc: { lat: 14.5764, lng: 121.0851, address: "Ortigas Center Business Park, Pasig City", accuracy: 15 }
-  },
-  { 
-    date: "2026-05-28", 
-    name: "Pedro Lim", 
-    timeIn: "07:55 AM", 
-    timeOut: "06:30 PM", 
-    hoursWorked: 10.58, 
-    lateMin: 0, 
-    status: "Present",
-    timeInLoc: { lat: 14.6760, lng: 121.0437, address: "Quezon City Memorial Circle, Quezon City", accuracy: 25 },
-    timeOutLoc: { lat: 14.6760, lng: 121.0437, address: "Quezon City Memorial Circle, Quezon City", accuracy: 25 }
-  },
-  { 
-    date: "2026-05-28", 
-    name: "Rosa Fernandez", 
-    timeIn: "09:15 AM", 
-    timeOut: "06:00 PM", 
-    hoursWorked: 8.75, 
-    lateMin: 75, 
-    status: "Late",
-    timeInLoc: { lat: 10.3157, lng: 123.8854, address: "Cebu IT Park, Lahug, Cebu City", accuracy: 18 },
-    timeOutLoc: { lat: 10.3157, lng: 123.8854, address: "Cebu IT Park, Lahug, Cebu City", accuracy: 18 }
-  },
-  { 
-    date: "2026-05-28", 
-    name: "Carlos Mendoza", 
-    timeIn: null, 
-    timeOut: null, 
-    hoursWorked: 0, 
-    lateMin: 0, 
-    status: "Absent" 
-  },
-];
-
-const HOLIDAYS = [
-  { date: "2026-06-12", name: "Independence Day", type: "Regular Holiday" },
-  { date: "2026-08-31", name: "National Heroes Day", type: "Regular Holiday" },
-  { date: "2026-11-30", name: "Bonifacio Day", type: "Regular Holiday" },
-  { date: "2026-12-25", name: "Christmas Day", type: "Regular Holiday" },
-];
+const DEPARTMENTS: any[] = [];
+const INITIAL_EMPLOYEES: any[] = [];
+const INITIAL_LEAVES: any[] = [];
+const INITIAL_ATTENDANCE: any[] = [];
+const INITIAL_ITINERARIES: any[] = [];
+const HOLIDAYS: any[] = [];
 
 // Helper formatting rules
 const formatCurrency = (amount: number) => {
@@ -132,14 +48,6 @@ const isDateInLeaveRange = (dateStr: string, startDate?: string, endDate?: strin
   if (!startDate || !endDate) return false;
   return dateStr >= startDate && dateStr <= endDate;
 };
-
-const INITIAL_ITINERARIES = [
-  { id: "ITIN-1", employeeId: "EMP-2024-0002", employeeName: "Juan dela Cruz", date: "2026-05-28", type: "achievement", title: "Finished high-throughput core payroll VM module testing", notes: "Achieved double speed in compilation cycles." },
-  { id: "ITIN-2", employeeId: "EMP-2024-0002", employeeName: "Juan dela Cruz", date: "2026-05-29", type: "itinerary", title: "Refactor TS enum type imports on middleware layers", notes: "Optimize latency of token decoding rules." },
-  { id: "ITIN-3", employeeId: "EMP-2024-0003", employeeName: "Ana Reyes", date: "2026-05-28", type: "achievement", title: "Completed Q1 statutory tax remittances with BIR", notes: "All verified by external PH certified auditors." },
-  { id: "ITIN-4", employeeId: "EMP-2024-0003", employeeName: "Ana Reyes", date: "2026-05-30", type: "itinerary", title: "Formulate next quarter's statutory benefit brackets", notes: "Draft draft spreadsheet for PhilHealth and SSS updates." },
-  { id: "ITIN-5", employeeId: "EMP-2024-0005", employeeName: "Rosa Fernandez", date: "2026-05-28", type: "itinerary", title: "Host client onboarding demonstration with regional stakeholders", notes: "Discuss statutory 201 parameters synchronization with central directory." },
-];
 
 export default function Home() {
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
@@ -170,222 +78,11 @@ export default function Home() {
   const [confirmPasswordVal, setConfirmPasswordVal] = useState<string>("");
   
   // Mutable HRIS states (represents client caching + state modification flow)
-  const [employeesList, setEmployeesList] = useState<any[]>(INITIAL_EMPLOYEES);
-  const [departmentsList, setDepartmentsList] = useState<any[]>(DEPARTMENTS);
+  const [employeesList, setEmployeesList] = useState<any[]>([]);
+  const [departmentsList, setDepartmentsList] = useState<any[]>([]);
 
   // Dynamic Payroll Run States
-  const [payrollRunsList, setPayrollRunsList] = useState<any[]>([
-    {
-      id: "PR-2026-05A",
-      startDate: "2026-05-01",
-      endDate: "2026-05-15",
-      label: "May 01-15, 2026 Cutoff",
-      generatedAt: "2026-05-15T17:00:00Z",
-      records: [
-        {
-          employeeId: "EMP-2024-0001",
-          employeeName: "Maria Santos",
-          employeePosition: "HR Manager",
-          employeeDepartment: "Human Resources",
-          basicGross: 27500,
-          sss: 1237.5,
-          philhealth: 687.5,
-          pagibig: 100,
-          tax: 3821.25,
-          latesUndertime: 0,
-          accumulatedLeavePaid: 0,
-          benefits: 3000,
-          loans: 0,
-          netTakeHome: 29653.75
-        },
-        {
-          employeeId: "EMP-2024-0002",
-          employeeName: "Juan dela Cruz",
-          employeePosition: "Senior Developer",
-          employeeDepartment: "Information Technology",
-          basicGross: 32500,
-          sss: 1350,
-          philhealth: 812.5,
-          pagibig: 100,
-          tax: 4535.63,
-          latesUndertime: 150,
-          accumulatedLeavePaid: 1500,
-          benefits: 2500,
-          loans: 500,
-          netTakeHome: 32201.87
-        },
-        {
-          employeeId: "EMP-2024-0003",
-          employeeName: "Ana Reyes",
-          employeePosition: "Accountant",
-          employeeDepartment: "Finance & Accounting",
-          basicGross: 20000,
-          sss: 900,
-          philhealth: 500,
-          pagibig: 100,
-          tax: 2775,
-          latesUndertime: 0,
-          accumulatedLeavePaid: 0,
-          benefits: 1500,
-          loans: 1000,
-          netTakeHome: 16225
-        },
-        {
-          employeeId: "EMP-2024-0004",
-          employeeName: "Pedro Lim",
-          employeePosition: "Operations Lead",
-          employeeDepartment: "Operations",
-          basicGross: 24000,
-          sss: 1080,
-          philhealth: 600,
-          pagibig: 100,
-          tax: 3333,
-          latesUndertime: 450,
-          accumulatedLeavePaid: 0,
-          benefits: 1800,
-          loans: 1200,
-          netTakeHome: 19137
-        },
-        {
-          employeeId: "EMP-2024-0005",
-          employeeName: "Rosa Fernandez",
-          employeePosition: "Sales Executive",
-          employeeDepartment: "Sales & Marketing",
-          basicGross: 16000,
-          sss: 720,
-          philhealth: 400,
-          pagibig: 100,
-          tax: 2217,
-          latesUndertime: 650,
-          accumulatedLeavePaid: 0,
-          benefits: 4500,
-          loans: 0,
-          netTakeHome: 16413
-        },
-        {
-          employeeId: "EMP-2024-0006",
-          employeeName: "Carlos Mendoza",
-          employeePosition: "IT Support",
-          employeeDepartment: "Information Technology",
-          basicGross: 14000,
-          sss: 630,
-          philhealth: 350,
-          pagibig: 100,
-          tax: 1938,
-          latesUndertime: 1200,
-          accumulatedLeavePaid: 0,
-          benefits: 1000,
-          loans: 500,
-          netTakeHome: 10382
-        }
-      ]
-    },
-    {
-      id: "PR-2026-05B",
-      startDate: "2026-05-16",
-      endDate: "2026-05-31",
-      label: "May 16-31, 2026 Cutoff",
-      generatedAt: "2026-05-31T17:00:00Z",
-      records: [
-        {
-          employeeId: "EMP-2024-0001",
-          employeeName: "Maria Santos",
-          employeePosition: "HR Manager",
-          employeeDepartment: "Human Resources",
-          basicGross: 27500,
-          sss: 1237.5,
-          philhealth: 687.5,
-          pagibig: 100,
-          tax: 3821.25,
-          latesUndertime: 0,
-          accumulatedLeavePaid: 0,
-          benefits: 3000,
-          loans: 0,
-          netTakeHome: 29653.75
-        },
-        {
-          employeeId: "EMP-2024-0002",
-          employeeName: "Juan dela Cruz",
-          employeePosition: "Senior Developer",
-          employeeDepartment: "Information Technology",
-          basicGross: 32500,
-          sss: 1350,
-          philhealth: 812.5,
-          pagibig: 100,
-          tax: 4535.63,
-          latesUndertime: 0,
-          accumulatedLeavePaid: 0,
-          benefits: 2500,
-          loans: 500,
-          netTakeHome: 32351.87
-        },
-        {
-          employeeId: "EMP-2024-0003",
-          employeeName: "Ana Reyes",
-          employeePosition: "Accountant",
-          employeeDepartment: "Finance & Accounting",
-          basicGross: 20000,
-          sss: 900,
-          philhealth: 500,
-          pagibig: 100,
-          tax: 2775,
-          latesUndertime: 0,
-          accumulatedLeavePaid: 0,
-          benefits: 1500,
-          loans: 1000,
-          netTakeHome: 16225
-        },
-        {
-          employeeId: "EMP-2024-0004",
-          employeeName: "Pedro Lim",
-          employeePosition: "Operations Lead",
-          employeeDepartment: "Operations",
-          basicGross: 24000,
-          sss: 1080,
-          philhealth: 600,
-          pagibig: 100,
-          tax: 3333,
-          latesUndertime: 200,
-          accumulatedLeavePaid: 0,
-          benefits: 1800,
-          loans: 1200,
-          netTakeHome: 19387
-        },
-        {
-          employeeId: "EMP-2024-0005",
-          employeeName: "Rosa Fernandez",
-          employeePosition: "Sales Executive",
-          employeeDepartment: "Sales & Marketing",
-          basicGross: 16000,
-          sss: 720,
-          philhealth: 400,
-          pagibig: 100,
-          tax: 2217,
-          latesUndertime: 200,
-          accumulatedLeavePaid: 0,
-          benefits: 5500,
-          loans: 0,
-          netTakeHome: 17863
-        },
-        {
-          employeeId: "EMP-2024-0006",
-          employeeName: "Carlos Mendoza",
-          employeePosition: "IT Support",
-          employeeDepartment: "Information Technology",
-          basicGross: 14000,
-          sss: 630,
-          philhealth: 350,
-          pagibig: 100,
-          tax: 1938,
-          latesUndertime: 150,
-          accumulatedLeavePaid: 0,
-          benefits: 1000,
-          loans: 500,
-          netTakeHome: 11432
-        }
-      ]
-    }
-  ]);
+  const [payrollRunsList, setPayrollRunsList] = useState<any[]>([]);
 
   const [selectedCutoffId, setSelectedCutoffId] = useState<string>("PR-2026-05B");
   const [selectedAdminCutoffId, setSelectedAdminCutoffId] = useState<string>("PR-2026-05B");
@@ -652,39 +349,12 @@ export default function Home() {
     triggerToast(`Dossier popup window successfully launched for ${emp.name}!`, "success");
   };
 
-  const [leaveRequestsList, setLeaveRequestsList] = useState<any[]>(INITIAL_LEAVES);
-  const [attendanceList, setAttendanceList] = useState<any[]>(INITIAL_ATTENDANCE);
+  const [leaveRequestsList, setLeaveRequestsList] = useState<any[]>([]);
+  const [attendanceList, setAttendanceList] = useState<any[]>([]);
 
   // Maker-Checker state tracking
   // Houses "Pending Checker" database requests made by Employees
-  const [makerRequests, setMakerRequests] = useState<any[]>([
-    {
-      id: "MREQ-2026-0001",
-      requesterId: "EMP-2024-0002",
-      requesterName: "Juan dela Cruz",
-      requestType: "Government ID Update",
-      field: "sss",
-      fieldLabel: "SSS Registration Number",
-      oldValue: "33-9876543-2",
-      newValue: "33-9876543-9",
-      notes: "SSS digits correction requested after SSS web database matching correction.",
-      status: "Pending",
-      filedDate: "2026-05-28T08:15:00Z"
-    },
-    {
-      id: "MREQ-2026-0002",
-      requesterId: "EMP-2024-0005",
-      requesterName: "Rosa Fernandez",
-      requestType: "Government ID Update",
-      field: "philhealth",
-      fieldLabel: "PhilHealth ID Number",
-      oldValue: "12-333333333-3",
-      newValue: "12-333333333-9",
-      notes: "Corrected final digit of PhilHealth registry alignment to avoid payroll premium filing bounce.",
-      status: "Pending",
-      filedDate: "2026-05-28T09:30:00Z"
-    }
-  ]);
+  const [makerRequests, setMakerRequests] = useState<any[]>([]);
 
   // Employee "Maker Profile Edit" Modal/Inline fields states
   const [makerTargetField, setMakerTargetField] = useState<string>("sss");
@@ -739,8 +409,31 @@ export default function Home() {
   const [demoEndDate, setDemoEndDate] = useState<string>("2026-05-31");
   const [companyHeading, setCompanyHeading] = useState<string>("CorpHR Philippines");
   const [companyTagline, setCompanyTagline] = useState<string>("Filipino Statutory Compliant HRIS. Authentication challenge enforced in compliance with national privacy and segregation of duties rules.");
-  const [hrAdminUsername, setHrAdminUsername] = useState<string>("admin");
-  const [hrAdminPassword, setHrAdminPassword] = useState<string>("admin1234");
+  const [hrAdminUsername, setHrAdminUsername] = useState<string>("");
+  const [hrAdminPassword, setHrAdminPassword] = useState<string>("");
+
+  useEffect(() => {
+    async function loadData() {
+      const { data: employees } = await supabase.from('employees').select('*');
+      const { data: departments } = await supabase.from('departments').select('*');
+      const { data: payrollRuns } = await supabase.from('payroll_runs').select('*');
+      const { data: leaves } = await supabase.from('leave_requests').select('*');
+      const { data: attendance } = await supabase.from('attendance_logs').select('*');
+      const { data: maker } = await supabase.from('maker_requests').select('*');
+      const { data: ot } = await supabase.from('overtime_requests').select('*');
+      const { data: itin } = await supabase.from('itineraries').select('*');
+      
+      setEmployeesList(employees || []);
+      setDepartmentsList(departments || []);
+      setPayrollRunsList(payrollRuns || []);
+      setLeaveRequestsList(leaves || []);
+      setAttendanceList(attendance || []);
+      setMakerRequests(maker || []);
+      setOvertimeRequests(ot || []);
+      setItinerariesList(itin || []);
+    }
+    loadData();
+  }, []);
   const [customLogo, setCustomLogo] = useState<string>("");
   const [selectedTheme, setSelectedTheme] = useState<string>("classic");
   const [showDevConsole, setShowDevConsole] = useState<boolean>(false);
@@ -1018,38 +711,7 @@ export default function Home() {
   const [dayOffDateStr, setDayOffDateStr] = useState<string>("");
 
   // Dynamic Overtime Request States
-  const [overtimeRequests, setOvertimeRequests] = useState<any[]>([
-    {
-      id: "OT-2026-0001",
-      employeeId: "EMP-2024-0002",
-      employeeName: "Juan dela Cruz",
-      date: "2026-05-27",
-      hours: 2,
-      purpose: "Urgent deployment patch bug hotfixing for main HR payroll run release.",
-      status: "Pending",
-      filedDate: "2026-05-27"
-    },
-    {
-      id: "OT-2026-0002",
-      employeeId: "EMP-2024-0003",
-      employeeName: "Ana Reyes",
-      date: "2026-05-26",
-      hours: 3.5,
-      purpose: "Preparing SSS compliance files for mid-year reporting audits.",
-      status: "Approved",
-      filedDate: "2026-05-26"
-    },
-    {
-      id: "OT-2026-0003",
-      employeeId: "EMP-2024-0001",
-      employeeName: "Maria Santos",
-      date: "2026-05-28",
-      hours: 4,
-      purpose: "Recruitment catalog updating and employee records verification.",
-      status: "Pending",
-      filedDate: "2026-05-28"
-    }
-  ]);
+  const [overtimeRequests, setOvertimeRequests] = useState<any[]>([]);
 
   const [otFormDate, setOtFormDate] = useState<string>("2026-05-28");
   const [otFormHours, setOtFormHours] = useState<number>(2);
@@ -1074,7 +736,7 @@ export default function Home() {
 
   const [batchFiles, setBatchFiles] = useState<{ id: string; fileName: string; mappedKey: string }[]>([]);
 
-  const [itinerariesList, setItinerariesList] = useState<any[]>(INITIAL_ITINERARIES);
+  const [itinerariesList, setItinerariesList] = useState<any[]>([]);
   const [itinCalendarYear, setItinCalendarYear] = useState<number>(2026);
   const [itinCalendarMonth, setItinCalendarMonth] = useState<number>(4);
   const [itinSelectedDateStr, setItinSelectedDateStr] = useState<string>("2026-05-28");
@@ -1090,86 +752,7 @@ export default function Home() {
 
 
   // Onboarding Tracker State for New Hires (docs assessment for 201 file compiler)
-  const [newHires, setNewHires] = useState<any[]>([
-    {
-      id: "NH-2026-001",
-      name: "Gino de Borja",
-      position: "Junior Developer",
-      department: "Information Technology",
-      dateHired: "2026-06-01",
-      email: "g.deborja@corp.ph",
-      avatar: "GB",
-      salary: 32000,
-      workingDaysFrom: "Monday",
-      workingDaysTo: "Friday",
-      clockInSchedule: "08:00 AM",
-      clockOutSchedule: "05:00 PM",
-      gracePeriod: 15,
-      docs: {
-        sss: { status: "Verified", file: "sss_cert_copy.pdf" },
-        philhealth: { status: "Pending Verification", file: "philhealth_id_scanned.png" },
-        pagibig: { status: "Missing", file: null },
-        tin: { status: "Verified", file: "bir_1902_completed.pdf" },
-        nbi: { status: "Pending Verification", file: "nbi_clearance_gino.pdf" },
-        contract: { status: "Verified", file: "signed_contract.pdf" },
-        resume: { status: "Verified", file: "gino_resume_v2.pdf" },
-        other: { status: "Missing", file: null },
-      },
-      onboardingStatus: "In Progress"
-    },
-    {
-      id: "NH-2026-002",
-      name: "Elena Valenzuela",
-      position: "Finance Clerk",
-      department: "Finance & Accounting",
-      dateHired: "2026-06-15",
-      email: "e.valenzuela@corp.ph",
-      avatar: "EV",
-      salary: 28000,
-      workingDaysFrom: "Monday",
-      workingDaysTo: "Friday",
-      clockInSchedule: "08:00 AM",
-      clockOutSchedule: "05:00 PM",
-      gracePeriod: 15,
-      docs: {
-        sss: { status: "Verified", file: "sss_membership_proof.pdf" },
-        philhealth: { status: "Verified", file: "philhealth_valenzuela.pdf" },
-        pagibig: { status: "Verified", file: "pagibig_mdf.pdf" },
-        tin: { status: "Verified", file: "tin_card_scanned.jpg" },
-        nbi: { status: "Verified", file: "nbi_clearance_elena.pdf" },
-        contract: { status: "Verified", file: "signed_contract.pdf" },
-        resume: { status: "Verified", file: "elena_cv_finance.pdf" },
-        other: { status: "Verified", file: "transcript_of_records_up.pdf" },
-      },
-      onboardingStatus: "Completed"
-    },
-    {
-      id: "NH-2026-003",
-      name: "Mark Agcaoli",
-      position: "Operations Assistant",
-      department: "Operations",
-      dateHired: "2026-07-01",
-      email: "m.agcaoli@corp.ph",
-      avatar: "MA",
-      salary: 25050,
-      workingDaysFrom: "Monday",
-      workingDaysTo: "Friday",
-      clockInSchedule: "08:00 AM",
-      clockOutSchedule: "05:00 PM",
-      gracePeriod: 15,
-      docs: {
-        sss: { status: "Pending Verification", file: "sss_sss.jpg" },
-        philhealth: { status: "Missing", file: null },
-        pagibig: { status: "Missing", file: null },
-        tin: { status: "Missing", file: null },
-        nbi: { status: "Missing", file: null },
-        contract: { status: "Pending Signature", file: null },
-        resume: { status: "Verified", file: "mark_agcaoli_ops_cv.pdf" },
-        other: { status: "Missing", file: null },
-      },
-      onboardingStatus: "In Progress"
-    }
-  ]);
+  const [newHires, setNewHires] = useState<any[]>([]);
 
   // Employee Promotion & Raise Application States
   const [promoType, setPromoType] = useState<string>("Both");
